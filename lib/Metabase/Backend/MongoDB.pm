@@ -4,10 +4,8 @@ use warnings;
 use utf8;
 
 package Metabase::Backend::MongoDB;
-# ABSTRACT: No abstract given for Metabase::Backend::MongoDB
+# ABSTRACT: Metabase backend implemented using MongoDB
 
-# Dependencies
-use autodie 2.00;
 
 1;
 
@@ -19,7 +17,7 @@ __END__
 
 = SYNOPSIS
 
-  use Metabase::Backend::MongoDB;
+TBD
 
 = DESCRIPTION
 
@@ -32,7 +30,8 @@ Good luck!
 
 = SEE ALSO
 
-Maybe other modules do related things.
+* Metabase::Archive::MongoDB
+* Metabase::Index::MongoDB
 
 =end wikidoc
 
