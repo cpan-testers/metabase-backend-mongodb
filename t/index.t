@@ -41,6 +41,10 @@ isa_ok( $fact, 'Test::Metabase::StringFact' );
 ok( $index->add( $fact ), "Indexed fact" );
 is( $index->count, 1, "Index has one entry" );
 
+ok( $index->delete( $fact->guid ), "Deleted fact from index" );
+is( $index->count, 0, "Index is empty" );
+
+
 #my $matches;
 #$matches = $index->search( 'core.guid' => $guid );
 #is( scalar @$matches, 1, "found guid searching for guid" );

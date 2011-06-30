@@ -87,7 +87,7 @@ has 'sql_abstract' => (
 sub _munge_keys {
   my ($self, $data, $from, $to) = @_;
   for my $key (keys %$data) {
-    (my $new_key = $key) =~ s/\Q$from\E/$to/; 
+    (my $new_key = $key) =~ s/\Q$from\E/$to/;
     $data->{$new_key} = delete $data->{$key};
   }
   return $data;
@@ -104,8 +104,8 @@ sub add {
     return $self->coll->insert( $metadata, {safe => 1} );
 }
 
-sub _get_search_sql {
-  my ( $self, $select, %spec ) = @_;
+sub _get_search_query {
+  my ( $self, %spec ) = @_;
 
   # extract limit and ordering keys
   my $limit = delete $spec{-limit};
@@ -116,25 +116,9 @@ sub _get_search_sql {
   if (scalar keys %order > 1) {
     Carp::confess("Only one of '-asc' or '-desc' allowed");
   }
-  if ( $limit && ! scalar keys %order ) {
-    Carp::confess("-limit requires -asc or -desc");
-  }
-
-  # generate SimpleDB dialect of SQL
-  my ($stmt, @bind) = $self->sql_abstract->where(\%spec, \%order);
-  my ($where, @rest) = split qr/\?/, $stmt;
-  for my $chunk (@rest) {
-    # using double quotes, so double them first
-    (my $val = shift @bind) =~ s{"}{""}g;
-    $where .= qq{"$val"} . $chunk;
-  }
-  $where .= " limit $limit" if defined $limit && $limit > 0;
-  my $domain = $self->domain;
-  my $sql = qq{$select from `$domain` $where};
-  return wantarray ? ($sql, $limit) : $sql;
 }
 
-sub count { 
+sub count {
     my ( $self, %spec) = @_;
 
     # XXX eventually, do something with %spec
@@ -165,7 +149,7 @@ sub search {
         # the following may not be necessary as of SimpleDB::Class 1.0000
         $items = [ $items ] unless ref $items eq 'ARRAY';
         push @$result, map { $_->{Name} } @$items ;
-        
+
       }
       if ( exists $response->{SelectResult}{NextToken} ) {
         last if defined $limit && @$result >= $limit;
@@ -183,7 +167,6 @@ sub search {
 
 sub exists {
     my ( $self, $guid ) = @_;
-
     return scalar @{ $self->search( 'core.guid' => lc $guid ) };
 }
 
@@ -193,12 +176,12 @@ sub delete {
 
     Carp::confess("can't delete without a GUID") unless $guid;
 
-    my $response = $self->simpledb->send_request(
-        'DeleteAttributes',
-        {   DomainName => $self->domain,
-            ItemName   => $guid,
-        }
-    );
+    my $query = $self->_munge_keys( { 'core.guid' => $guid }, '.' => '|' );
+
+    try { $self->coll->remove($query, { safe => 1 }) };
+
+    # XXX should we be confessing on a failed delete? -- dagolden, 2011-06-30
+    return $@ ? 0 : 1;
 }
 
 
