@@ -8,8 +8,68 @@ package Metabase::Index::MongoDB;
 use Moose;
 use SQL::Abstract 1;
 use Try::Tiny;
+use MongoDB;
 
 with 'Metabase::Index';
+
+# XXX eventually, do some validation on this -- dagolden, 2011-06-30
+has 'host' => (
+  is      => 'ro',
+  isa     => 'Str',
+  default => 'mongodb://localhost:27017',
+  required  => 1,
+);
+
+# XXX eventually, do some validation on this -- dagolden, 2011-06-30
+has 'db_name' => (
+  is      => 'ro',
+  isa     => 'Str',
+  default => 'metabase',
+  required  => 1,
+);
+
+# XXX eventually, do some validation on this -- dagolden, 2011-06-30
+# e.g. if password,then also need non-empty username
+has ['username', 'password'] => (
+  is      => 'ro',
+  isa     => 'Str',
+  default => '',
+);
+
+has 'connection' => (
+    is      => 'ro',
+    isa     => 'MongoDB::Connection',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        return MongoDB::Connection->new(
+          host => $self->host,
+          $self->password ? (
+            db_name   => $self->db_name,
+            username  => $self->username,
+            password  => $self->password,
+          ) : (),
+        );
+    },
+);
+
+has 'collection_name' => (
+  is      => 'ro',
+  isa     => 'Str',
+  default => 'metabase_index',
+);
+
+has 'coll' => (
+    is      => 'ro',
+    isa     => 'MongoDB::Collection',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        return $self->connection
+                    ->get_database( $self->db_name )
+                    ->get_collection( $self->collection_name );
+    },
+);
 
 has 'sql_abstract' => (
     is      => 'ro',
@@ -24,32 +84,24 @@ has 'sql_abstract' => (
     },
 );
 
+sub _munge_keys {
+  my ($self, $data, $from, $to) = @_;
+  for my $key (keys %$data) {
+    (my $new_key = $key) =~ s/\Q$from\E/$to/; 
+    $data->{$new_key} = delete $data->{$key};
+  }
+  return $data;
+}
+
 sub add {
     my ( $self, $fact ) = @_;
 
     Carp::confess("can't index a Fact without a GUID") unless $fact->guid;
 
     my $metadata = $self->clone_metadata( $fact );
+    $self->_munge_keys($metadata, '.' => '|');
 
-    my $i = 0;
-    my @attributes;
-    foreach my $key ( keys %$metadata ) {
-        my $value = $metadata->{$key};
-        push @attributes,
-            "Attribute.$i.Name"    => $key,
-            "Attribute.$i.Value"   => $value,
-            # XXX not using replace is an optimization -- dagolden, 2010-04-29
-#            "Attribute.$i.Replace" => 'true'; # XXX optimization -- dagolden, 2010-04-29
-        $i++;
-    }
-
-    my $response = $self->simpledb->send_request(
-        'PutAttributes',
-        {   DomainName => $self->domain,
-            ItemName   => lc $fact->guid,
-            @attributes,
-        }
-    );
+    return $self->coll->insert( $metadata, {safe => 1} );
 }
 
 sub _get_search_sql {
@@ -85,38 +137,9 @@ sub _get_search_sql {
 sub count { 
     my ( $self, %spec) = @_;
 
-    my ($sql, $limit) = $self->_get_search_sql("select count(*)", %spec );
+    # XXX eventually, do something with %spec
 
-    # prepare request
-    my $request = { SelectExpression => $sql };
-    my $result = 0;
-
-    # gather results until all counts received
-    FETCH: {
-      my $response;
-      try {
-        $response = $self->simpledb->send_request( 'Select', $request )
-      } catch {
-        Carp::confess("Got error '$_' from '$sql'");
-      };
-
-      if ( exists $response->{SelectResult}{Item} ) {
-        my $items = $response->{SelectResult}{Item};
-        # the following may not be necessary as of SimpleDB::Class 1.0000
-        $items = [ $items ] unless ref $items eq 'ARRAY';
-        for my $i (@$items) {
-          next unless $i->{Name} eq 'Domain';
-          $result += $i->{Attribute}{Value};
-        }
-      }
-      if ( exists $response->{SelectResult}{NextToken} ) {
-        last if defined $limit && @$result >= $limit;
-        $request->{NextToken} = $response->{SelectResult}{NextToken};
-        redo FETCH;
-      }
-    }
-
-    return $result;
+    return $self->coll->count;
 }
 
 sub search {
