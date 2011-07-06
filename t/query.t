@@ -44,7 +44,38 @@ my @cases = (
       }, 
       {} 
     ],
-  }
+  },
+  {
+    label => 'inequality',
+    input => { -where => [ -ne => 'content.grade' => 'PASS' ] },
+    output => [ {'content|grade' => { '$ne' => 'PASS' }}, {} ],
+  },
+  {
+    label => 'greater than',
+    input => { -where => [ -gt => 'content.grade' => 'PASS' ] },
+    output => [ {'content|grade' => { '$gt' => 'PASS' }}, {} ],
+  },
+  {
+    label => 'less than',
+    input => { -where => [ -lt => 'content.grade' => 'PASS' ] },
+    output => [ {'content|grade' => { '$lt' => 'PASS' }}, {} ],
+  },
+  {
+    label => 'greater than or equal to',
+    input => { -where => [ -ge => 'content.grade' => 'PASS' ] },
+    output => [ {'content|grade' => { '$gte' => 'PASS' }}, {} ],
+  },
+  {
+    label => 'less than or equal to',
+    input => { -where => [ -le => 'content.grade' => 'PASS' ] },
+    output => [ {'content|grade' => { '$lte' => 'PASS' }}, {} ],
+  },
+  {
+    label => 'between',
+    input => { -where => [ -between => 'content.size' => 10 => 20 ] },
+    output => [ {'content|size' => { '$gte' => 10, '$lte' => 20 }}, {} ],
+  },
+
 );
 
 for my $c ( @cases ) {
