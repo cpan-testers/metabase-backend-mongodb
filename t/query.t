@@ -26,6 +26,24 @@ my @cases = (
     label => 'single equality',
     input => { -where => [ -eq => 'content.grade' => 'PASS' ] },
     output => [ { 'content|grade' => 'PASS' }, {} ],
+  },
+  {
+    label => "'-and' with equality",
+    input => { 
+      -where => [
+        -and => 
+          [-eq => 'content.grade' => 'PASS' ],
+          [-eq => 'content.osname' => 'MSWin32' ],
+        ,
+      ],
+    },
+    output => [ 
+      {
+        'content|grade' => 'PASS',
+        'content|osname' => 'MSWin32',
+      }, 
+      {} 
+    ],
   }
 );
 

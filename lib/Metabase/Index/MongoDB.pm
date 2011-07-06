@@ -283,7 +283,7 @@ sub op_and {
 
   my $query = {};
   while ( my $pred = shift @args ) {
-    my $clause = $self->dispatch( $pred );
+    my $clause = $self->dispatch_query_op( $pred );
     for my $field ( keys %$clause ) {
       if ( exists $query->{$field} ) {
         if ( ref $query->{$field} ne 'HASH' ) {
