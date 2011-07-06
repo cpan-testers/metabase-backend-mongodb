@@ -1,4 +1,4 @@
-use 5.006;
+use 5.010;
 use strict;
 use warnings;
 
@@ -6,11 +6,13 @@ package Metabase::Index::MongoDB;
 # ABSTRACT: Metabase index on MongoDB
 
 use Moose;
-use SQL::Abstract 1;
+use Regexp::SQL::LIKE 0.001 qw/to_regexp/;
+use re qw/regexp_pattern/;
 use Try::Tiny;
 use MongoDB;
 
 with 'Metabase::Index';
+with 'Metabase::Query';
 
 # XXX eventually, do some validation on this -- dagolden, 2011-06-30
 has 'host' => (
@@ -86,6 +88,9 @@ has 'sql_abstract' => (
 
 sub _munge_keys {
   my ($self, $data, $from, $to) = @_;
+  $from ||= '.';
+  $to ||= '|';
+
   for my $key (keys %$data) {
     (my $new_key = $key) =~ s/\Q$from\E/$to/;
     $data->{$new_key} = delete $data->{$key};
@@ -102,20 +107,6 @@ sub add {
     $self->_munge_keys($metadata, '.' => '|');
 
     return $self->coll->insert( $metadata, {safe => 1} );
-}
-
-sub _get_search_query {
-  my ( $self, %spec ) = @_;
-
-  # extract limit and ordering keys
-  my $limit = delete $spec{-limit};
-  my  %order;
-  for my $k ( qw/-asc -desc/ ) {
-    $order{$k} = delete $spec{$k} if exists $spec{$k};
-  }
-  if (scalar keys %order > 1) {
-    Carp::confess("Only one of '-asc' or '-desc' allowed");
-  }
 }
 
 sub count {
@@ -184,6 +175,141 @@ sub delete {
     return $@ ? 0 : 1;
 }
 
+#--------------------------------------------------------------------------#
+# Implement Metabase::Query requirements
+#--------------------------------------------------------------------------#
+
+sub translate_query {
+  my ( $self, $spec ) = @_;
+
+  my $query = {};
+
+  # translate search query
+  if ( defined $spec->{-where} and ref $spec->{-where} eq 'ARRAY') {
+    $query = $self->dispatch_query_op( $spec->{-where} );
+  }
+
+  # translate query modifiers
+  my $options = {};
+
+  if ( defined $spec->{-order} and ref $spec->{-order} eq 'ARRAY') {
+    my @order = @{$spec->{-order}};
+    while ( @order ) {
+      my ($dir, $field) = splice( @order, 0, 2);
+      push @{$options->{sort_by}}, $field, $dir ? 1 : -1;
+    }
+  }
+
+  if ( defined $spec->{-limit} ) {
+    $options->{sort_by}{limit} = $spec->{-limit};
+  }
+
+  return $query, $options;
+}
+
+sub op_eq {
+  my ($self, $field, $val) = @_;
+  return $self->_munge_keys( { $field, $val } );
+}
+
+sub op_ne {
+  my ($self, $field, $val) = @_;
+  return $self->_munge_keys( { $field, { '$ne', $val } } );
+}
+
+sub op_gt {
+  my ($self, $field, $val) = @_;
+  return $self->_munge_keys( { $field, { '$gt', $val } } );
+}
+
+sub op_lt {
+  my ($self, $field, $val) = @_;
+  return $self->_munge_keys( { $field, { '$lt', $val } } );
+}
+
+sub op_ge {
+  my ($self, $field, $val) = @_;
+  return $self->_munge_keys( { $field, { '$gte', $val } } );
+}
+
+sub op_le {
+  my ($self, $field, $val) = @_;
+  return $self->_munge_keys( { $field, { '$lte', $val } } );
+}
+
+sub op_between {
+  my ($self, $field, $low, $high) = @_;
+  return $self->_munge_keys( { $field, { '$gte' => $low, '$lte' => $high } } );
+}
+
+sub op_like {
+  my ($self, $field, $val) = @_;
+  my ($re) = regexp_pattern(to_regexp($val));
+  return $self->_munge_keys( { $field, { '$regex' => $re } } );
+}
+
+my %can_negate = map { $_ => 1 } qw(
+  -ne -lt -le -gt -ge -between  
+);
+
+sub op_not {
+  my ($self, $pred) = @_;
+  my $op = $pred->[0];
+  if ( ! $can_negate{$op} ) {
+    Carp::confess( "Cannot negate '$op' operation\n" );
+  }
+  my $clause = $self->dispatch_query_op($pred);
+  for my $k ( keys %$clause ) {
+    $clause->{$k} = { '$not' => $clause->{$k} };
+  }
+  return $self->_munge_keys($clause);
+}
+
+sub op_or {
+  my ($self, @args) = @_;
+  state $depth = 0;
+  if ( $depth++ ) {
+    Carp::confess( "Cannot next '-or' predicates\n" );
+  }
+  my @predicates = map { $self->dispatch_query_op($_) } @args;
+  $depth--;
+  return { '$or' => \@predicates };
+}
+
+# AND has to flatten criteria into a single hash, but that means
+# there are several things that don't work and we have to croak
+sub op_and {
+  my ($self, @args) = @_;
+
+  my $query = {};
+  while ( my $pred = shift @args ) {
+    my $clause = $self->dispatch( $pred );
+    for my $field ( keys %$clause ) {
+      if ( exists $query->{$field} ) {
+        if ( ref $query->{$field} ne 'HASH' ) {
+          Carp::croak("Cannot '-and' equality with other operations");
+        }
+        _merge_hash( $field, $query, $clause );
+      }
+      else {
+        $query->{$field} = $clause->{$field};
+      }
+    }
+  }
+
+  return $query;
+}
+
+sub _merge_hash {
+  my ( $field, $orig, $new ) = @_;
+  for my $op ( keys %{$new->{$field}} ) {
+    if ( exists $orig->{$field}{$op} ) {
+      Carp::confess( "Cannot merge '$op' criteria for '$field'\n" );
+    }
+    $orig->{$field}{$op} = $new->{$field}{$op};
+  }
+  return;
+}
 
 1;
 
