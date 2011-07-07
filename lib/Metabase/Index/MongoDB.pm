@@ -91,10 +91,16 @@ sub _munge_keys {
   $from ||= '.';
   $to ||= '|';
 
-  for my $key (keys %$data) {
-    (my $new_key = $key) =~ s/\Q$from\E/$to/;
-    $data->{$new_key} = delete $data->{$key};
+  if ( ref $data eq 'HASH' ) {
+    for my $key (keys %$data) {
+      (my $new_key = $key) =~ s/\Q$from\E/$to/;
+      $data->{$new_key} = delete $data->{$key};
+    }
   }
+  else { 
+    $data =~ s/\Q$from\E/$to/;
+  }
+
   return $data;
 }
 
@@ -104,54 +110,23 @@ sub add {
     Carp::confess("can't index a Fact without a GUID") unless $fact->guid;
 
     my $metadata = $self->clone_metadata( $fact );
-    $self->_munge_keys($metadata, '.' => '|');
+    $self->_munge_keys($metadata);
 
     return $self->coll->insert( $metadata, {safe => 1} );
 }
 
 sub count {
-    my ( $self, %spec) = @_;
-
-    # XXX eventually, do something with %spec
-
-    return $self->coll->count;
+    my ( $self, %spec ) = @_;
+    my ($query, $mods) = $self->get_native_query(\%spec);
+    return $self->coll->count($query);
 }
 
 sub search {
     my ( $self, %spec) = @_;
+    my ($query, $mods) = $self->get_native_query(\%spec);
 
-    my ($sql, $limit) = $self->_get_search_sql("select ItemName()", %spec );
-
-    # prepare request
-    my $request = { SelectExpression => $sql };
-    my $result = [];
-
-    # gather results until all items received
-    FETCH: {
-      my $response;
-      try {
-        $response = $self->simpledb->send_request( 'Select', $request )
-      } catch {
-        Carp::confess("Got error '$_' from '$sql'");
-      };
-
-      if ( exists $response->{SelectResult}{Item} ) {
-        my $items = $response->{SelectResult}{Item};
-        # the following may not be necessary as of SimpleDB::Class 1.0000
-        $items = [ $items ] unless ref $items eq 'ARRAY';
-        push @$result, map { $_->{Name} } @$items ;
-
-      }
-      if ( exists $response->{SelectResult}{NextToken} ) {
-        last if defined $limit && @$result >= $limit;
-        $request->{NextToken} = $response->{SelectResult}{NextToken};
-        redo FETCH;
-      }
-    }
-
-    if ( defined $limit && @$result > $limit ) {
-      splice @$result, $limit;
-    }
+    my $cursor = $self->coll->query( $query, $mods );
+    my $result = [ map { $_->{$self->_munge_keys('core.guid')} } $cursor->all ];
 
     return $result;
 }
