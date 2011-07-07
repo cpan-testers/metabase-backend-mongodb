@@ -1,7 +1,7 @@
 # Copyright (c) 2008 by Ricardo Signes. All rights reserved.
 # Licensed under terms of Perl itself (the "License").
 # You may not use this file except in compliance with the License.
-# A copy of the License was distributed with this file or you may obtain a 
+# A copy of the License was distributed with this file or you may obtain a
 # copy of the License from http://dev.perl.org/licenses/
 
 use strict;
@@ -77,7 +77,25 @@ $matches = $index->search( -where => [ -eq => 'core.type' => $fact->type ] ) ;
 is( scalar @$matches, 2, "Found two facts searching for fact type" );
 
 $matches = $index->search( -where => [ -eq => 'content.size' => length $string ] ) ;
-is( scalar @$matches, 1, "Found one facts searching on content.size" );
+is( scalar @$matches, 1, "Found one fact searching on content.size" );
+
+$matches = $index->search( 'content.size' => length $string ) ;
+is( scalar @$matches, 1, "Found one fact searching on content.size (old API)" );
+
+$matches = $index->search(
+  'content.size' => length $string, 'core.type' => $fact2->type
+) ;
+is( scalar @$matches, 1,
+  "Found one fact searching on two fields (old API test 2)"
+);
+
+$matches = $index->search(
+  -where => [ -eq => 'core.guid' => $fact2->guid ],
+  'content.size' => length $string, 'core.type' => $fact2->type
+) ;
+is( scalar @$matches, 1,
+  "Found one fact searching on three fields (mixed API test)"
+);
 
 is( $matches->[0], $fact2->guid, "Result GUID matches expected fact GUID" );
 
@@ -86,6 +104,33 @@ is( scalar @$matches, 0, "Found no facts searching for bogus dist_author" );
 
 $matches = $index->search( -where => [ -eq => bogus_key => "asdljasljfa"] );
 is( scalar @$matches, 0, "Found no facts searching on bogus key" );
+
+# search with order and limit
+
+$matches = $index->search(
+  -where => [ -eq => 'core.type' => $fact->type ],
+  -order => [ -asc => 'core.guid' ],
+) ;
+is( scalar @$matches, 2, "Ran ordered search" );
+ok( $matches->[0] lt $matches->[1], "Facts in correct order" );
+
+$matches = $index->search(
+  -where => [ -eq => 'core.type' => $fact->type ],
+  -order => [ -desc => 'core.guid' ],
+) ;
+is( scalar @$matches, 2, "Ran ordered search (reversed)" );
+ok( $matches->[0] gt $matches->[1], "Facts in correct order" ) or
+  diag explain $matches;
+
+$matches = $index->search( -limit => 1 );
+is( scalar @$matches, 1, "Querying with limit 1 returns 1 result" );
+
+# exists()
+ok( $index->exists( $fact->guid ), "Checked exists( guid )" );
+ok( $index->exists( uc $fact->guid ), "Checked exists( GUID )" );
+ok( ! $index->exists( '2475e04a-a8e7-11e0-bcb0-5f47df37754e' ),
+  "Checked exists( fakeguid ) - false"
+);
 
 
 # delete()

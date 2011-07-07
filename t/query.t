@@ -4,6 +4,7 @@ use warnings;
 use Test::More 0.92;
 use Test::Deep;
 use MongoDB::Connection;
+use re 'regexp_pattern';
 
 #-------------------------------------------------------------------------#
 # Setup
@@ -29,20 +30,20 @@ my @cases = (
   },
   {
     label => "'-and' with equality",
-    input => { 
+    input => {
       -where => [
-        -and => 
+        -and =>
           [-eq => 'content.grade' => 'PASS' ],
           [-eq => 'content.osname' => 'MSWin32' ],
         ,
       ],
     },
-    output => [ 
+    output => [
       {
         'content|grade' => 'PASS',
         'content|osname' => 'MSWin32',
-      }, 
-      {} 
+      },
+      {}
     ],
   },
   {
@@ -75,7 +76,66 @@ my @cases = (
     input => { -where => [ -between => 'content.size' => 10 => 20 ] },
     output => [ {'content|size' => { '$gte' => 10, '$lte' => 20 }}, {} ],
   },
-
+  {
+    label => 'like',
+    input => { -where => [ -like => 'core.resource' => '%JOHNDOE%'  ] },
+    output => [
+      {
+        'core|resource' => { '$regex' => [regexp_pattern(qr/.*JOHNDOE.*/)]->[0] }
+      },
+      {}
+    ],
+  },
+  {
+    label => 'and',
+    input => { -where => [ -and => [ -gt => 'content.size' => 5 ], [ -lt => 'content.size' => 10 ] ] },
+    output => [
+      { 'content|size' => { '$gt' => 5, '$lt' => 10 } },
+      {}
+    ],
+  },
+  {
+    label => 'or',
+    input => { -where => [ -or => [ -gt => 'content.size' => 15 ], [ -lt => 'content.size' => 5 ] ] },
+    output => [
+      { '$or' => [{ 'content|size' => { '$gt' => 15}}, { 'content|size' => { '$lt' => 5 } }] },
+      {}
+    ],
+  },
+  {
+    label => 'not',
+    input => { -where => [ -not => [ -gt => 'content.size' => 5 ] ] },
+    output => [
+      { 'content|size' => { '$not' => { '$gt' => 5 } } },
+      {}
+    ],
+  },
+  {
+    label => 'ordering',
+    input => {
+      -where => [ -eq => 'content.grade' => 'PASS' ],
+      -order => [ -desc => 'core.updated_time', -asc => 'core.resource' ],
+    },
+    output => [
+      { 'content|grade' => 'PASS' },
+      { sort_by => { 'core|updated_time' => -1, 'core|resource' => 1} },
+    ],
+  },
+  {
+    label => 'ordering plus limit',
+    input => {
+      -where => [ -eq => 'content.grade' => 'PASS' ],
+      -order => [ -desc => 'core.updated_time', -asc => 'core.resource' ],
+      -limit => 10,
+    },
+    output => [
+      { 'content|grade' => 'PASS' },
+      {
+        sort_by => { 'core|updated_time' => -1, 'core|resource' => 1},
+        limit => 10
+      },
+    ],
+  },
 );
 
 for my $c ( @cases ) {

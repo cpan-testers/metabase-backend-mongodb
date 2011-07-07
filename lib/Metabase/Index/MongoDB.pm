@@ -97,7 +97,7 @@ sub _munge_keys {
       $data->{$new_key} = delete $data->{$key};
     }
   }
-  else { 
+  else {
     $data =~ s/\Q$from\E/$to/;
   }
 
@@ -112,6 +112,7 @@ sub add {
     my $metadata = $self->clone_metadata( $fact );
     $self->_munge_keys($metadata);
 
+#    $self->coll->ensure_index({ $self->_munge_keys('core.guid') => 1 } );
     return $self->coll->insert( $metadata, {safe => 1} );
 }
 
@@ -133,7 +134,8 @@ sub search {
 
 sub exists {
     my ( $self, $guid ) = @_;
-    return scalar @{ $self->search( 'core.guid' => lc $guid ) };
+    # in case specified in wrong case, dwim it
+    return scalar @{ $self->search(-where => [-eq =>'core.guid'=>lc $guid])};
 }
 
 # DO NOT lc() GUID
@@ -171,12 +173,13 @@ sub translate_query {
     my @order = @{$spec->{-order}};
     while ( @order ) {
       my ($dir, $field) = splice( @order, 0, 2);
-      push @{$options->{sort_by}}, $field, $dir ? 1 : -1;
+      $options->{sort_by}{$field} = ($dir eq '-asc') ? 1 : -1;
+      $self->_munge_keys( $options->{sort_by} );
     }
   }
 
   if ( defined $spec->{-limit} ) {
-    $options->{sort_by}{limit} = $spec->{-limit};
+    $options->{limit} = $spec->{-limit};
   }
 
   return $query, $options;
@@ -224,7 +227,7 @@ sub op_like {
 }
 
 my %can_negate = map { $_ => 1 } qw(
-  -ne -lt -le -gt -ge -between  
+  -ne -lt -le -gt -ge -between
 );
 
 sub op_not {
