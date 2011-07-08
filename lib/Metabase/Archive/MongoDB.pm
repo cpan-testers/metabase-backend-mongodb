@@ -52,7 +52,9 @@ sub store {
     my $json = compress(encode_json($fact_struct));
 
     # g for guid; d for data
-    return $self->coll->insert( { g => $guid, d => $json }, {safe => 1} );
+    $self->coll->insert( { g => $guid, d => $json }, {safe => 1} );
+
+    return $guid;
 }
 
 # given guid, retrieve it and return it
