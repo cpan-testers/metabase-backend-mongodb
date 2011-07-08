@@ -1,8 +1,7 @@
 package Test::Metabase::StringFact;
-use 5.006;
 use strict;
 use warnings;
-use base 'Metabase::Fact::String';
+use parent 'Metabase::Fact::String';
 
 sub content_metadata {
   my $self = shift;

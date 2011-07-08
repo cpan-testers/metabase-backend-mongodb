@@ -1,13 +1,9 @@
-# Copyright (c) 2008 by Ricardo Signes. All rights reserved.
-# Licensed under terms of Perl itself (the "License").
-# You may not use this file except in compliance with the License.
-# A copy of the License was distributed with this file or you may obtain a
-# copy of the License from http://dev.perl.org/licenses/
-
+use 5.010;
 use strict;
 use warnings;
 
-use Test::More 0.88;
+use Test::More 0.92;
+use Test::Deep;
 use MongoDB;
 use Try::Tiny;
 
@@ -55,7 +51,7 @@ ok( my $copy = $class->from_struct( $copy_struct ),
     "got a fact from archive"
 );
 
-is_deeply( $copy, $fact, "Extracted fact matches original" );
+cmp_deeply( $copy, $fact, "Extracted fact matches original" );
 
 ok( $archive->store( $fact2->as_struct ), "stored fact 2" );
 

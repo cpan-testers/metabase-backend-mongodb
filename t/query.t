@@ -1,10 +1,15 @@
 use 5.010;
 use strict;
 use warnings;
+
 use Test::More 0.92;
 use Test::Deep;
-use MongoDB::Connection;
+use MongoDB;
+use Try::Tiny;
 use re 'regexp_pattern';
+
+use lib 't/lib';
+use Test::Metabase::StringFact;
 
 #-------------------------------------------------------------------------#
 # Setup
