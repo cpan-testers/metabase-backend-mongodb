@@ -246,7 +246,9 @@ roles using MongoDB.
 
 =head1 USAGE
 
-See L<Metabase::Index>, L<Metabase::Query> and L<Metabase::Librarian>.
+See L<Metabase::Backend::MongoDB> for constructor attributes.  See
+L<Metabase::Index>, L<Metabase::Query> and L<Metabase::Librarian>
+for details on usage.
 
 =head1 LIMITATIONS
 

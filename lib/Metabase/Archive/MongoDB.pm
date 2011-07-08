@@ -99,12 +99,20 @@ __END__
 
 =head1 SYNOPSIS
 
+  use Metabase::Archive::MongoDB;
+
+  Metabase::Archive::MongoDB->new(
+    host    => 'mongodb://localhost:27017',
+    db_name => 'my_metabase',
+  );
 
 =head1 DESCRIPTION
 
+This is an implementation of the L<Metabase::Archive> role using MongoDB.
 
 =head1 USAGE
 
-See L<Metabase::Archive> and L<Metabase::Librarian>.
+See L<Metabase::Backend::MongoDB> for constructor attributes.  See
+L<Metabase::Archive> and L<Metabase::Librarian> for details on usage.
 
 =cut
