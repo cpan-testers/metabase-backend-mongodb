@@ -8,7 +8,7 @@ package Metabase::Archive::MongoDB;
 use boolean;
 use Carp       ();
 use Compress::Zlib 2 qw(compress uncompress);
-use Data::Stream::Bulk::Filter;
+use Data::Stream::Bulk::Callback;
 use JSON 2 qw/encode_json decode_json/;
 use Metabase::Fact;
 use Try::Tiny;
