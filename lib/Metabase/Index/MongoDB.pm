@@ -5,104 +5,36 @@ use warnings;
 package Metabase::Index::MongoDB;
 # ABSTRACT: Metabase index on MongoDB
 
-use Moose;
-use Regexp::SQL::LIKE 0.001 qw/to_regexp/;
+use boolean;
 use re qw/regexp_pattern/;
-use Try::Tiny;
 use MongoDB;
+use Regexp::SQL::LIKE 0.001 qw/to_regexp/;
+use Try::Tiny;
 
+use Moose;
+with 'Metabase::Backend::MongoDB';
 with 'Metabase::Index';
 with 'Metabase::Query';
 
-# XXX eventually, do some validation on this -- dagolden, 2011-06-30
-has 'host' => (
-  is      => 'ro',
-  isa     => 'Str',
-  default => 'mongodb://localhost:27017',
-  required  => 1,
-);
+#--------------------------------------------------------------------------#
+# required by Metabase::Backend::MongoDB
+#--------------------------------------------------------------------------#
 
-# XXX eventually, do some validation on this -- dagolden, 2011-06-30
-has 'db_name' => (
-  is      => 'ro',
-  isa     => 'Str',
-  default => 'metabase',
-  required  => 1,
-);
-
-# XXX eventually, do some validation on this -- dagolden, 2011-06-30
-# e.g. if password,then also need non-empty username
-has ['username', 'password'] => (
-  is      => 'ro',
-  isa     => 'Str',
-  default => '',
-);
-
-has 'connection' => (
-    is      => 'ro',
-    isa     => 'MongoDB::Connection',
-    lazy    => 1,
-    default => sub {
-        my $self = shift;
-        return MongoDB::Connection->new(
-          host => $self->host,
-          $self->password ? (
-            db_name   => $self->db_name,
-            username  => $self->username,
-            password  => $self->password,
-          ) : (),
-        );
-    },
-);
-
-has 'collection_name' => (
-  is      => 'ro',
-  isa     => 'Str',
-  default => 'metabase_index',
-);
-
-has 'coll' => (
-    is      => 'ro',
-    isa     => 'MongoDB::Collection',
-    lazy    => 1,
-    default => sub {
-        my $self = shift;
-        return $self->connection
-                    ->get_database( $self->db_name )
-                    ->get_collection( $self->collection_name );
-    },
-);
-
-has 'sql_abstract' => (
-    is      => 'ro',
-    isa     => 'SQL::Abstract',
-    lazy    => 1,
-    default => sub {
-        my $self = shift;
-        return SQL::Abstract->new(
-          case => 'lower',
-          quote_char => q{`},
-        );
-    },
-);
-
-sub _munge_keys {
-  my ($self, $data, $from, $to) = @_;
-  $from ||= '.';
-  $to ||= '|';
-
-  if ( ref $data eq 'HASH' ) {
-    for my $key (keys %$data) {
-      (my $new_key = $key) =~ s/\Q$from\E/$to/;
-      $data->{$new_key} = delete $data->{$key};
-    }
-  }
-  else {
-    $data =~ s/\Q$from\E/$to/;
-  }
-
-  return $data;
+sub _build_collection_name {
+  return 'metabase_index';
 }
+
+sub _ensure_index {
+  my ($self, $coll) = @_;
+  return $coll->ensure_index(
+    { 'core|guid' => 1 },
+    { safe => 1, unique => true} 
+  );
+}
+
+#--------------------------------------------------------------------------#
+# required by Metabase::Index
+#--------------------------------------------------------------------------#
 
 sub add {
     my ( $self, $fact ) = @_;
@@ -112,13 +44,13 @@ sub add {
     my $metadata = $self->clone_metadata( $fact );
     $self->_munge_keys($metadata);
 
-#    $self->coll->ensure_index({ $self->_munge_keys('core.guid') => 1 } );
     return $self->coll->insert( $metadata, {safe => 1} );
 }
 
 sub count {
     my ( $self, %spec ) = @_;
     my ($query, $mods) = $self->get_native_query(\%spec);
+    local $MongoDB::Cursor::slave_okay = 1;
     return $self->coll->count($query);
 }
 
@@ -126,6 +58,7 @@ sub search {
     my ( $self, %spec) = @_;
     my ($query, $mods) = $self->get_native_query(\%spec);
 
+    local $MongoDB::Cursor::slave_okay = 1;
     my $cursor = $self->coll->query( $query, $mods );
     my $result = [ map { $_->{$self->_munge_keys('core.guid')} } $cursor->all ];
 
@@ -153,7 +86,7 @@ sub delete {
 }
 
 #--------------------------------------------------------------------------#
-# Implement Metabase::Query requirements
+# required by Metabase::Query
 #--------------------------------------------------------------------------#
 
 sub translate_query {
@@ -247,7 +180,7 @@ sub op_or {
   my ($self, @args) = @_;
   state $depth = 0;
   if ( $depth++ ) {
-    Carp::confess( "Cannot next '-or' predicates\n" );
+    Carp::confess( "Cannot nest '-or' predicates\n" );
   }
   my @predicates = map { $self->dispatch_query_op($_) } @args;
   $depth--;
@@ -294,46 +227,49 @@ sub _merge_hash {
 __END__
 
 =for Pod::Coverage::TrustPod add search exists delete count
+translate_query op_eq op_ne op_gt op_lt op_ge op_le op_between op_like
+op_not op_or op_and
 
 =head1 SYNOPSIS
 
-  require Metabase::Index::SimpleDB;
-  Metabase::Index:SimpleDB->new(
-    access_key_id => 'XXX',
-    secret_access_key => 'XXX',
-    domain     => 'metabase',
+  use Metabase::Index::MongoDB;
+
+  Metabase::Index::MongoDB->new(
+    host    => 'mongodb://localhost:27017',
+    db_name => 'my_metabase',
   );
 
 =head1 DESCRIPTION
 
-Metabase index using Amazon SimpleDB.
+This is an implementation of the L<Metabase::Index> and L<Metabase::Query>
+roles using MongoDB.
 
 =head1 USAGE
 
-See L<Metabase::Index> and L<Metabase::Librarian>.
+See L<Metabase::Index>, L<Metabase::Query> and L<Metabase::Librarian>.
 
-=head1 BUGS
+=head1 LIMITATIONS
 
-Please report any bugs or feature using the CPAN Request Tracker.
-Bugs can be submitted through the web interface at
-L<http://rt.cpan.org/Dist/Display.html?Queue=Metabase>
+Search queries have limitations based on the underlying MongoDB search
+API.  Specifically:
 
-When submitting a bug or request, please include a test-file or a patch to an
-existing test-file that illustrates the bug or desired feature.
+=over
 
-=head1 COPYRIGHT AND LICENSE
+=item C<-and>
 
-Portions Copyright (c) 2010 by Leon Brocard
+It is not possible to combine C<-eq> with other comparisions on the same
+field or to combine multiple constraints on the same field using the
+same operator (e.g. two C<-like> constraints).
 
-Licensed under terms of Perl itself (the "License").
-You may not use this file except in compliance with the License.
-A copy of the License was distributed with this file or you may obtain a
-copy of the License from http://dev.perl.org/licenses/
+=item C<-or>
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+The C<-or> operator cannot be nested.
+
+=item C<-not>
+
+Only simple comparisons can be negated.  This makes C<-not> not particularly
+useful.
+
+=back
 
 =cut
