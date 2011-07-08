@@ -7,6 +7,7 @@ package Metabase::Index::MongoDB;
 
 use boolean;
 use re qw/regexp_pattern/;
+use Data::Stream::Bulk::Callback;
 use MongoDB;
 use Regexp::SQL::LIKE 0.001 qw/to_regexp/;
 use Try::Tiny;
@@ -48,27 +49,32 @@ sub add {
 }
 
 sub count {
-    my ( $self, %spec ) = @_;
+    my ($self, %spec) = @_;
     my ($query, $mods) = $self->get_native_query(\%spec);
     local $MongoDB::Cursor::slave_okay = 1;
     return $self->coll->count($query);
 }
 
-sub search {
-    my ( $self, %spec) = @_;
+sub query { 
+    my ($self, %spec) = @_;
     my ($query, $mods) = $self->get_native_query(\%spec);
 
     local $MongoDB::Cursor::slave_okay = 1;
     my $cursor = $self->coll->query( $query, $mods );
-    my $result = [ map { $_->{$self->_munge_keys('core.guid')} } $cursor->all ];
+    $cursor->immortal(1); # this could take a while!
+    my $guid_key = $self->_munge_keys('core.guid');
 
-    return $result;
-}
-
-sub exists {
-    my ( $self, $guid ) = @_;
-    # in case specified in wrong case, dwim it
-    return scalar @{ $self->search(-where => [-eq =>'core.guid'=>lc $guid])};
+    return Data::Stream::Bulk::Callback->new(
+      callback => sub {
+        my @results;
+        for ( 1 .. 50 ) {
+          last unless $cursor->has_next;
+          my $obj = $cursor->next;
+          push @results, $obj->{$guid_key} ;
+        }
+        return @results ? \@results : undef;
+      }
+    );
 }
 
 # DO NOT lc() GUID
@@ -226,7 +232,7 @@ sub _merge_hash {
 
 __END__
 
-=for Pod::Coverage::TrustPod add search exists delete count
+=for Pod::Coverage::TrustPod add search delete count
 translate_query op_eq op_ne op_gt op_lt op_ge op_le op_between op_like
 op_not op_or op_and
 

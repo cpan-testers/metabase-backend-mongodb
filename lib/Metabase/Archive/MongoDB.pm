@@ -31,7 +31,7 @@ sub _ensure_index {
   my ($self, $coll) = @_;
   return $coll->ensure_index(
     { 'g' => 1 },
-    { safe => 1, unique => true} 
+    { safe => 1, unique => true}
   );
 }
 
