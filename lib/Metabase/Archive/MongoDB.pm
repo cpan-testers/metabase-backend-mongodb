@@ -17,7 +17,7 @@ use Try::Tiny;
 use Moose;
 
 with 'Metabase::Backend::MongoDB';
-with 'Metabase::Archive';
+with 'Metabase::Archive' => { -version => 0.017 };
 
 #--------------------------------------------------------------------------#
 # required by Metabase::Backend::MongoDB
