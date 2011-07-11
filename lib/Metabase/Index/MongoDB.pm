@@ -15,7 +15,6 @@ use Try::Tiny;
 use Moose;
 with 'Metabase::Backend::MongoDB';
 with 'Metabase::Index' => { -version => 0.017 };
-with 'Metabase::Query' => { -version => 0.017 };
 
 #--------------------------------------------------------------------------#
 # required by Metabase::Backend::MongoDB
