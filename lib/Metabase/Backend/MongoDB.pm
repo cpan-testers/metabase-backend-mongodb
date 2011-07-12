@@ -2,7 +2,7 @@ use 5.008001;
 use strict;
 use warnings;
 package Metabase::Backend::MongoDB;
-# ABSTRACT: Metabase backend implemented using MongoDB
+# VERSION
 
 use MongoDB;
 use Moose::Role;
@@ -143,7 +143,8 @@ sub _munge_keys {
 
 1;
 
-__END__
+# ABSTRACT: Metabase backend implemented using MongoDB
+# COPYRIGHT
 
 =for Pod::Coverage method_names_here
 

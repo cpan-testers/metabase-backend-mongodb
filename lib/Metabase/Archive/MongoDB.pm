@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 package Metabase::Archive::MongoDB;
-# ABSTRACT: Metabase storage using MongoDB
+# VERSION
 
 use boolean;
 use Carp       ();
@@ -93,7 +93,8 @@ sub iterator {
 
 1;
 
-__END__
+# ABSTRACT: Metabase storage using MongoDB
+# COPYRIGHT
 
 =for Pod::Coverage::TrustPod store extract delete iterator
 

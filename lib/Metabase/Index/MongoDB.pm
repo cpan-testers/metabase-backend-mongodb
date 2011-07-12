@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 package Metabase::Index::MongoDB;
-# ABSTRACT: Metabase index on MongoDB
+# VERSION 
 
 use boolean;
 use re qw/regexp_pattern/;
@@ -229,7 +229,8 @@ sub _merge_hash {
 
 1;
 
-__END__
+# ABSTRACT: Metabase index on MongoDB
+# COPYRIGHT
 
 =for Pod::Coverage::TrustPod add search delete count
 translate_query op_eq op_ne op_gt op_lt op_ge op_le op_between op_like
