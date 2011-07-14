@@ -6,6 +6,7 @@ package Metabase::Backend::MongoDB;
 
 use MongoDB;
 use Moose::Role;
+use namespace::autoclean;
 
 requires '_build_collection_name', '_ensure_index' ;
 
