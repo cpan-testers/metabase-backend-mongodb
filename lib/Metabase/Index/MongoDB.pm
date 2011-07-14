@@ -232,7 +232,7 @@ sub _merge_hash {
 # ABSTRACT: Metabase index on MongoDB
 # COPYRIGHT
 
-=for Pod::Coverage::TrustPod add search delete count
+=for Pod::Coverage::TrustPod add query delete count
 translate_query op_eq op_ne op_gt op_lt op_ge op_le op_between op_like
 op_not op_or op_and
 
