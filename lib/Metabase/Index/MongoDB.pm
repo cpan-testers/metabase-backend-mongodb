@@ -27,7 +27,7 @@ sub _build_collection_name {
 sub _ensure_index {
   my ($self, $coll) = @_;
   return $coll->ensure_index(
-    { 'core|guid' => 1 },
+    $self->_munge_keys({ 'core.guid' => 1 }),
     { safe => 1, unique => true} 
   );
 }
