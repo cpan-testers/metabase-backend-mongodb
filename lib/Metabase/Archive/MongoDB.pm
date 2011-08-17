@@ -23,6 +23,8 @@ with 'Metabase::Archive' => { -version => 0.017 };
 # required by Metabase::Backend::MongoDB
 #--------------------------------------------------------------------------#
 
+sub initialize {}
+
 sub _build_collection_name {
   return 'metabase_archive';
 }
