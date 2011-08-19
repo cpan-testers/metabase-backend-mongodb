@@ -3,29 +3,35 @@ use strict;
 use warnings;
 
 use Test::More 0.92;
+use Test::Routine;
+use Test::Routine::Util;
 use Test::Deep;
-use MongoDB;
 use Try::Tiny;
 use re 'regexp_pattern';
 
 use lib 't/lib';
-use Test::Metabase::StringFact;
 
-#-------------------------------------------------------------------------#
-# Setup
-#--------------------------------------------------------------------------#
+with 'Metabase::Test::Backend::MongoDB';
 
-my $conn = try{ MongoDB::Connection->new };
-BAIL_OUT("No local mongod running for testing") unless $conn;
-my $testdb = 'test' . int(rand(2**21));
-END { $conn->get_database($testdb)->drop; }
+has index => (
+  is => 'ro',
+  does => 'Metabase::Index',
+  lazy_build => 1,
+);
 
-#--------------------------------------------------------------------------#
-# Tests here
-#--------------------------------------------------------------------------#
+sub _build_index {
+  my $self = shift;
+  return Metabase::Index::MongoDB->new(
+    db_name => $self->dbname
+  );
+}
 
-require_ok( 'Metabase::Index::MongoDB' );
-my $index = new_ok( 'Metabase::Index::MongoDB', [ db_name => $testdb ] );
+after clear_index => sub {
+  my $self = shift;
+  $self->mongodb->get_database( $self->dbname )->drop;
+};
+
+sub DEMOLISH { my $self = shift; $self->clear_index; }
 
 my @cases = (
   {
