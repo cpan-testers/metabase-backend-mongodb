@@ -5,28 +5,10 @@ use warnings;
 use Test::More;
 use Test::Routine;
 use Test::Routine::Util;
-use Try::Tiny;
 
-use MongoDB;
-use Metabase::Archive::MongoDB;
+use lib 't/lib';
 
-has mongodb => (
-  is => 'ro',
-  isa => 'MongoDB::Connection',
-  lazy_build => 1,
-);
-
-has dbname => (
-  is => 'ro',
-  isa => 'Str',
-  default => sub { 'test' . int(rand(2**31)) },
-);
-
-sub _build_mongodb {
-  my $conn = try{ MongoDB::Connection->new };
-  BAIL_OUT("No local mongod running for testing") unless $conn;
-  return $conn;
-}
+with 'Metabase::Test::Backend::MongoDB';
 
 sub _build_archive {
   my $self = shift;
@@ -40,11 +22,11 @@ after clear_archive => sub {
   $self->mongodb->get_database( $self->dbname )->drop;
 };
 
-sub DEMOLISH { my $self = shift; $self->clear_archive }
+sub DEMOLISH { my $self = shift; $self->clear_archive; }
 
 run_tests(
-  "Run Archive tests on Metabase::Index::MongodB",
-  ["main", "Metabase::Test::Archive"]
+  "Run Archive tests on Metabase::Archive::MongodB",
+  ["main", "Metabase::Test::Archive"],
 );
 
 done_testing;
