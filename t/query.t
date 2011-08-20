@@ -5,7 +5,7 @@ use warnings;
 use Test::More 0.92;
 use Test::Routine;
 use Test::Routine::Util;
-use Test::Deep;
+use Test::Deep qw/cmp_deeply/;
 use Try::Tiny;
 use re 'regexp_pattern';
 
@@ -149,9 +149,14 @@ my @cases = (
   },
 );
 
-for my $c ( @cases ) {
-  my @query = $index->get_native_query( $c->{input} );
-  cmp_deeply( \@query, $c->{output}, $c->{label} );
-}
+test "query tests" => sub {
+  my $self = shift;
+  for my $c ( @cases ) {
+    my @query = $self->index->get_native_query( $c->{input} );
+    cmp_deeply( \@query, $c->{output}, $c->{label} );
+  }
+};
+
+run_me;
 
 done_testing;
