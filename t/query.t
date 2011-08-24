@@ -133,6 +133,17 @@ my @cases = (
     ],
   },
   {
+    label => 'ordering w/ complex where',
+    input => {
+      -where => [ -and => [-gt => 'core.guid' => 0], [-eq => 'content.grade' => 'PASS'] ],
+      -order => [ -desc => 'core.updated_time', -asc => 'core.resource' ],
+    },
+    output => [
+      { 'content|grade' => 'PASS', 'core|guid' => { '$gt', 0 } },
+      { sort_by => { 'core|updated_time' => -1, 'core|resource' => 1} },
+    ],
+  },
+  {
     label => 'ordering plus limit',
     input => {
       -where => [ -eq => 'content.grade' => 'PASS' ],
