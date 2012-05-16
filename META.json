@@ -4,7 +4,7 @@
       "David Golden <dagolden@cpan.org>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Dist::Zilla version 4.300002, CPAN::Meta::Converter version 2.112580",
+   "generated_by" : "Dist::Zilla version 4.300016, CPAN::Meta::Converter version 2.120921",
    "license" : [
       "apache_2_0"
    ],
@@ -32,34 +32,36 @@
       },
       "runtime" : {
          "requires" : {
-            "Carp" : 0,
+            "Carp" : "0",
             "Compress::Zlib" : "2",
-            "Data::Stream::Bulk::Callback" : 0,
+            "Data::Stream::Bulk::Callback" : "0",
             "JSON" : "2",
             "Metabase::Archive" : "0.017",
-            "Metabase::Fact" : 0,
+            "Metabase::Fact" : "0",
             "Metabase::Index" : "0.017",
-            "MongoDB" : 0,
-            "Moose" : 0,
-            "Moose::Role" : 0,
+            "MongoDB" : "0",
+            "Moose" : "0",
+            "Moose::Role" : "0",
             "Regexp::SQL::LIKE" : "0.001",
-            "Try::Tiny" : 0,
-            "boolean" : 0,
-            "namespace::autoclean" : 0,
+            "Try::Tiny" : "0",
+            "boolean" : "0",
+            "namespace::autoclean" : "0",
             "perl" : "5.010",
-            "re" : 0,
-            "strict" : 0,
-            "warnings" : 0
+            "re" : "0",
+            "strict" : "0",
+            "warnings" : "0"
          }
       },
       "test" : {
          "requires" : {
-            "File::Find" : 0,
-            "File::Temp" : 0,
-            "Test::Deep" : 0,
+            "File::Find" : "0",
+            "File::Temp" : "0",
+            "Metabase::Test::Archive" : "0",
+            "Metabase::Test::Index" : "0",
+            "Test::Deep" : "0",
             "Test::More" : "0.92",
-            "Test::Routine" : 0,
-            "Test::Routine::Util" : 0
+            "Test::Routine" : "0",
+            "Test::Routine::Util" : "0"
          }
       }
    },

@@ -5,6 +5,7 @@ use warnings;
 use Test::More;
 use Test::Routine;
 use Test::Routine::Util;
+use Metabase::Test::Archive;
 
 use lib 't/lib';
 

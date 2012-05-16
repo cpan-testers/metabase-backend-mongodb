@@ -74,15 +74,15 @@ the index or archive data.
 
 =for Pod::Coverage method_names_here
 
-=for :stopwords cpan testmatrix url annocpan anno bugtracker rt cpants kwalitee diff irc mailto metadata placeholders
+=for :stopwords cpan testmatrix url annocpan anno bugtracker rt cpants kwalitee diff irc mailto metadata placeholders metacpan
 
 =head1 SUPPORT
 
 =head2 Bugs / Feature Requests
 
-Please report any bugs or feature requests by email to C<bug-metabase-backend-mongodb at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/Public/Dist/Display.html?Name=Metabase-Backend-MongoDB>. You will be automatically notified of any
-progress on the request by the system.
+Please report any bugs or feature requests through the issue tracker
+at L<http://rt.cpan.org/Public/Dist/Display.html?Name=Metabase-Backend-MongoDB>.
+You will be notified automatically of any progress on your issue.
 
 =head2 Source Code
 
