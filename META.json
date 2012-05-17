@@ -68,15 +68,15 @@
    "provides" : {
       "Metabase::Archive::MongoDB" : {
          "file" : "lib/Metabase/Archive/MongoDB.pm",
-         "version" : "0.001"
+         "version" : "1.000"
       },
       "Metabase::Backend::MongoDB" : {
          "file" : "lib/Metabase/Backend/MongoDB.pm",
-         "version" : "0.001"
+         "version" : "1.000"
       },
       "Metabase::Index::MongoDB" : {
          "file" : "lib/Metabase/Index/MongoDB.pm",
-         "version" : "0.001"
+         "version" : "1.000"
       }
    },
    "release_status" : "stable",
@@ -92,6 +92,6 @@
          "web" : "https://github.com/dagolden/metabase-backend-mongodb"
       }
    },
-   "version" : "0.001"
+   "version" : "1.000"
 }
 
