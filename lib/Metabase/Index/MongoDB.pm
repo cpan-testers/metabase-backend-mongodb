@@ -234,7 +234,7 @@ sub _merge_hash {
 # ABSTRACT: Metabase index on MongoDB
 # COPYRIGHT
 
-=for Pod::Coverage::TrustPod add query delete count
+=for Pod::Coverage::TrustPod add query delete count initialize
 translate_query op_eq op_ne op_gt op_lt op_ge op_le op_between op_like
 op_not op_or op_and
 
@@ -267,7 +267,7 @@ API.  Specifically:
 
 =item C<-and>
 
-It is not possible to combine C<-eq> with other comparisions on the same
+It is not possible to combine C<-eq> with other comparisons on the same
 field or to combine multiple constraints on the same field using the
 same operator (e.g. two C<-like> constraints).
 

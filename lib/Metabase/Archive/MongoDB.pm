@@ -98,7 +98,7 @@ sub iterator {
 # ABSTRACT: Metabase storage using MongoDB
 # COPYRIGHT
 
-=for Pod::Coverage::TrustPod store extract delete iterator
+=for Pod::Coverage::TrustPod store extract delete iterator initialize
 
 =head1 SYNOPSIS
 
